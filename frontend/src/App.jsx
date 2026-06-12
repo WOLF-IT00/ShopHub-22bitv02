@@ -1,20 +1,18 @@
+import Header from "./components/Header";
+import Banner from "./components/Banner";
+import Footer from "./components/Footer";
+
 function App() {
   return (
     <>
-      <h1>ShopHub</h1>
+      <Header />
 
-      <h2>Nhóm thực hiện</h2>
+      <Banner
+        title="Welcome to ShopHub"
+        description="Your Online Shopping Destination"
+      />
 
-      <ul>
-        <li>Lê Thanh Trọng - 2200009170</li>
-        <li>Nguyễn Mai Tú Mẫn - 2200006620</li>
-        <li>Nguyễn Hoàng Pháp Bảo - 2200006550</li>
-	<li>Quách Tiến Tài -2200006985</li>
-	<li>Võ Văn Dũng-2200008171</li>
-	
-      </ul>
-
-      <h3>Session 01 - 08/06/2026</h3>
+      <Footer />
     </>
   );
 }
