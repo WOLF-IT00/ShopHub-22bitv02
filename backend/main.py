@@ -9,9 +9,6 @@ function App() {
         <li>Lê Thanh Trọng - 2200009170</li>
         <li>Nguyễn Mai Tú Mẫn - 2200006620</li>
         <li>Nguyễn Hoàng Pháp Bảo - 2200006550</li>
-	<li>Quách Tiến Tài -2200006985</li>
-	<li>Võ Văn Dũng-2200008171</li>
-	
       </ul>
 
       <h3>Session 01 - 08/06/2026</h3>
