@@ -1,6 +1,7 @@
 import Header from "./components/Header";
 import Banner from "./components/Banner";
 import Footer from "./components/Footer";
+import ProductList from "./components/ProductList";
 
 function App() {
   return (
@@ -11,6 +12,8 @@ function App() {
         title="Welcome to ShopHub"
         description="Your Online Shopping Destination"
       />
+
+      <ProductList />
 
       <Footer />
     </>
