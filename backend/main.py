@@ -1,9 +1,28 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 
-app = FastAPI() 
+from database import engine, get_db
+from models import Base
+import schemas
+import crud
 
+app = FastAPI()
+
+# Tạo bảng nếu chưa có
+Base.metadata.create_all(bind=engine)
+
+# Kiểm tra kết nối PostgreSQL
+try:
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+    print("✅ Connected to PostgreSQL successfully!")
+except Exception as e:
+    print("❌ Connection failed!")
+    print(e)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -13,29 +32,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-class Product(BaseModel):
-    id: int
-    name: str
-    price: float
 
-products = [
-    {
-        "id": 1,
-        "name": "iPhone 15",
-        "price": 25000000
-    },
-    {
-        "id": 2,
-        "name": "Samsung S25",
-        "price": 22000000
-    },
-    {
-        "id": 3,
-        "name": "Xiaomi 15",
-        "price": 15000000
-    }
-]
-
+# ==========================
+# Home
+# ==========================
 
 @app.get("/")
 def home():
@@ -43,56 +43,104 @@ def home():
         "message": "Welcome to ShopHub API"
     }
 
+# ==========================
+# Category APIs
+# ==========================
 
-@app.get("/products")
-def get_products():
-    return products
+@app.post("/categories", response_model=schemas.CategoryResponse)
+def create_category(
+    category: schemas.CategoryCreate,
+    db: Session = Depends(get_db)
+):
+    return crud.create_category(db, category)
 
-@app.get("/products/{id}")
-def get_product(id: int):
-    for product in products:
-        if product["id"] == id:
-            return product
 
+@app.get("/categories", response_model=list[schemas.CategoryResponse])
+def get_categories(db: Session = Depends(get_db)):
+    return crud.get_categories(db)
+
+
+# ==========================
+# Product APIs
+# ==========================
+
+@app.post("/products", response_model=schemas.ProductResponse)
+def create_product(
+    product: schemas.ProductCreate,
+    db: Session = Depends(get_db)
+):
+    return crud.create_product(db, product)
+
+
+@app.get("/products", response_model=list[schemas.ProductResponse])
+def get_products(db: Session = Depends(get_db)):
+    return crud.get_products(db)
+
+
+@app.get("/products/{product_id}", response_model=schemas.ProductResponse)
+def get_product(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    product = crud.get_product_by_id(db, product_id)
+
+    if product is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found"
+        )
+
+    return product
+
+
+@app.put("/products/{product_id}", response_model=schemas.ProductResponse)
+def update_product(
+    product_id: int,
+    product: schemas.ProductCreate,
+    db: Session = Depends(get_db)
+):
+    updated_product = crud.update_product(
+        db,
+        product_id,
+        product
+    )
+
+    if updated_product is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found"
+        )
+
+    return updated_product
+
+
+# ==========================
+# Test Validation
+# ==========================
+
+@app.post("/test-product")
+def test_product(product: schemas.ProductCreate):
     return {
-        "message": "Product not found"
+        "message": "Data is valid!",
+        "data": product
     }
 
-@app.post("/products")
-def create_product(product: Product):
-    products.append(product.dict())
+# ==========================
+# DELETE 
+# ==========================
+@app.delete("/products/{product_id}")
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    deleted_product = crud.delete_product(db, product_id)
+
+    if deleted_product is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found"
+        )
 
     return {
-        "message": "Product created successfully",
-        "product": product
-    }
-
-@app.put("/products/{id}")
-def update_product(id: int, updated_product: Product):
-    for index, product in enumerate(products):
-        if product["id"] == id:
-            products[index] = updated_product.dict()
-
-            return {
-                "message": "Product updated successfully",
-                "product": updated_product
-            }
-
-    return {
-        "message": "Product not found"
-    }
-
-@app.delete("/products/{id}")
-def delete_product(id: int):
-    for index, product in enumerate(products):
-        if product["id"] == id:
-            deleted_product = products.pop(index)
-
-            return {
-                "message": "Product deleted successfully",
-                "product": deleted_product
-            }
-
-    return {
-        "message": "Product not found"
+        "message": "Product deleted successfully"
     }
