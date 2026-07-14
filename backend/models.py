@@ -10,22 +10,62 @@ class Category(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
 
-    products = relationship("Product", back_populates="category")
+    products = relationship(
+        "Product",
+        back_populates="category"
+    )
 
 
 class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    price = Column(Float, nullable=False)
+
+    name = Column(
+        String,
+        nullable=False
+    )
+
+    price = Column(
+        Float,
+        nullable=False
+    )
 
     category_id = Column(
         Integer,
-        ForeignKey("categories.id")
+        ForeignKey("categories.id"),
+        nullable=False
     )
 
     category = relationship(
         "Category",
         back_populates="products"
+    )
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+        autoincrement=True
+    )
+
+    username = Column(
+        String,
+        unique=True,
+        nullable=False
+    )
+
+    email = Column(
+        String,
+        unique=True,
+        nullable=False
+    )
+
+    hashed_password = Column(
+        String,
+        nullable=False
     )

@@ -144,3 +144,42 @@ def delete_product(
     return {
         "message": "Product deleted successfully"
     }
+
+# ==========================
+#register 
+# ==========================
+@app.post(
+    "/register",
+    response_model=schemas.UserResponse
+)
+def register(
+    user: schemas.UserCreate,
+    db: Session = Depends(get_db)
+):
+    return crud.create_user(
+        db,
+        user
+    )
+
+
+@app.post("/login")
+def login(
+    user: schemas.UserLogin,
+    db: Session = Depends(get_db)
+):
+    db_user = crud.authenticate_user(
+        db,
+        user.username,
+        user.password
+    )
+
+    if db_user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid username or password"
+        )
+
+    return {
+        "message": "Login successful",
+        "username": db_user.username
+    }
