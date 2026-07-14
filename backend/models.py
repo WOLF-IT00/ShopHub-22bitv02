@@ -69,3 +69,9 @@ class User(Base):
         String,
         nullable=False
     )
+
+    role = Column(
+        String,
+        nullable=False,
+        default="CUSTOMER"
+    )

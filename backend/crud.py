@@ -110,11 +110,11 @@ def create_user(
     hashed_password = hash_password(user.password)
 
     db_user = models.User(
-        username=user.username,
-        email=user.email,
-        hashed_password=hashed_password
-    )
-
+    username=user.username,
+    email=user.email,
+    hashed_password=hashed_password,
+    role="CUSTOMER"
+)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)

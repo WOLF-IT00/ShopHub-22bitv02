@@ -3,12 +3,46 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
+from fastapi.security import OAuth2PasswordRequestForm
+
 from database import engine, get_db
 from models import Base
 import schemas
 import crud
+import models
+import auth
 
 app = FastAPI()
+
+from fastapi.security import (
+    OAuth2PasswordBearer,
+    OAuth2PasswordRequestForm
+)
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/login"
+)
+
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    payload = auth.verify_token(token)
+
+    username = payload.get("sub")
+
+    user = db.query(models.User).filter(
+        models.User.username == username
+    ).first()
+
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="User not found"
+        )
+
+    return user
 
 # Tạo bảng nếu chưa có
 Base.metadata.create_all(bind=engine)
@@ -67,14 +101,15 @@ def get_categories(db: Session = Depends(get_db)):
 @app.post("/products", response_model=schemas.ProductResponse)
 def create_product(
     product: schemas.ProductCreate,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return crud.create_product(db, product)
+    auth.check_admin(current_user)
 
-
-@app.get("/products", response_model=list[schemas.ProductResponse])
-def get_products(db: Session = Depends(get_db)):
-    return crud.get_products(db)
+    return crud.create_product(
+        db,
+        product
+    )
 
 
 @app.get("/products/{product_id}", response_model=schemas.ProductResponse)
@@ -131,9 +166,15 @@ def test_product(product: schemas.ProductCreate):
 @app.delete("/products/{product_id}")
 def delete_product(
     product_id: int,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    deleted_product = crud.delete_product(db, product_id)
+    auth.check_admin(current_user)
+
+    deleted_product = crud.delete_product(
+        db,
+        product_id
+    )
 
     if deleted_product is None:
         raise HTTPException(
@@ -144,6 +185,7 @@ def delete_product(
     return {
         "message": "Product deleted successfully"
     }
+
 
 # ==========================
 #register 
@@ -164,22 +206,32 @@ def register(
 
 @app.post("/login")
 def login(
-    user: schemas.UserLogin,
+    form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
+
     db_user = crud.authenticate_user(
         db,
-        user.username,
-        user.password
+        form_data.username,
+        form_data.password
     )
-
     if db_user is None:
         raise HTTPException(
             status_code=401,
             detail="Invalid username or password"
         )
 
+    access_token = auth.create_access_token(
+        {
+            "sub": db_user.username,
+            "role": db_user.role
+        }
+    )
+
     return {
-        "message": "Login successful",
-        "username": db_user.username
+        "access_token": access_token,
+        "token_type": "bearer",
+        "username": db_user.username,
+        "role": db_user.role
     }
+
